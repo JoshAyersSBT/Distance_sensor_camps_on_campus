@@ -59,32 +59,35 @@ void setup()
 }
 
 void loop() {
-    // Read distance from ultrasonic sensor (in cm)
     int distance_cm = hcsr04.ping_cm();
-    float distance_in = distance_cm * 0.393701;  // convert cm to inches
 
-    // Limit displayed range (e.g., between 2 and 40 inches)
-    float limited_dist = constrain(distance_in, 2.0, 40.0);
+    if (distance_cm > 0) {
+        float distance_in = distance_cm * 0.393701;
+        float limited_dist = constrain(distance_in, 2.0, 40.0);
 
-    // --- Update 7-Segment Display ---
-    s7seg.setNumber(limited_dist, 1); // display with 1 decimal place
+        s7seg.setNumber(limited_dist, 1); // update number
+
+        float t = (limited_dist - 2.0) / (40.0 - 2.0);
+        t = constrain(t, 0.0, 1.0);
+        int red   = (1.0 - t) * 255;
+        int green = t * 255;
+        LedRGB.setPixelColor(0, LedRGB.Color(red, green, 0));
+        LedRGB.show();
+
+        Serial.print("Distance: ");
+        Serial.print(distance_cm);
+        Serial.print(" cm / ");
+        Serial.print(limited_dist, 2);
+        Serial.println(" in");
+    } else {
+        LedRGB.setPixelColor(0, LedRGB.Color(0, 0, 0));
+        LedRGB.show();
+        s7seg.setChars("----");
+        Serial.println("No object detected.");
+    }
+
+    // 👇 This must always be outside the conditionals
     s7seg.refreshDisplay();
 
-    // --- Update LED Color ---
-    // Map inches to color: 2" = red (255,0,0), 40" = green (0,255,0)
-    // We'll linearly interpolate between red and green
-    int red = map(limited_dist, 2, 40, 255, 0);
-    int green = map(limited_dist, 2, 40, 0, 255);
-
-    LedRGB.setPixelColor(0, LedRGB.Color(red, green, 0));
-    LedRGB.show();
-
-    // --- Debug output ---
-    Serial.print("Distance: ");
-    Serial.print(distance_cm);
-    Serial.print(" cm / ");
-    Serial.print(distance_in);
-    Serial.println(" in");
-
-    delay(100);  // Short delay for stability
+    delay(10);  // reduce delay to improve refresh rate
 }
